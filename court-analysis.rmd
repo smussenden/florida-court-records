@@ -1,0 +1,140 @@
+---
+title: "Untitled"
+author: "Sean Mussenden | Howard Center for Investigative Journalism"
+date: "2/13/2020"
+output: html_document
+---
+
+# Go to terminal. Make sure you have pip installed
+pip install csvkit 
+
+# cd into folder with data 
+cd Desktop/florida-court-records
+
+# unzip the data 
+unzip 20200129_Howard_Center_Mussenden.zip 
+
+# Rename the file 
+No idea how to do this in terminal, so I did it through visual folder. 
+
+# Check the encoding 
+file florida.txt
+florida.txt: Little-endian UTF-16 Unicode text, with very long lines, with CRLF line terminators
+
+# Fuck off UTF-16 Convert to UTF-8 by telling csvkit csvclean function that it's utf-16.  By default it converts it to UTF-8
+csvclean -e "UTF-16" florida.txt
+
+
+```{r}
+
+
+
+disk.frame
+https://diskframe.com/
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+library(tidyverse)
+devtools::install_github("xiaodaigh/disk.frame")
+
+
+```{r cars}
+
+st_john <- read_rds("data/output/counties/county_55.rds")
+oka <- read_rds("data/output/counties/county_46.rds")
+orange <- read_rds("data/output/counties/county_48.rds")
+```
+
+```{r}
+colnames(st_john)
+```
+
+```{r}
+# Need to make sure that when I read in data in import files that it accounted for 01 vs 1 for county codes. 
+# It looks like it's one record per case per count, but need to confirm. I think that means that for each case, can have multiple records.  If there's two counts of same charge, that's two separate records? If two counts of different charges, one each, that's two separate records?   
+# rec_num - my created unique identifier for entire data set
+# message_type - This field will identify the reason for supplemental action (changes) on disposed charges which have previously been supplied to the state level. N (Not applicable), E (Expunge), S (Seal), P (Appellate Action)
+# off_tran_no - This is in the data dictionary, but I have no idea what this means.  Page 2
+# court_docket_no - case number, essentially. Not unique, can have the same case number multiple times, in part because of next field, sequence no.
+# sequence_no - for each count, a unique identifier WITHIN a given case.  
+# no_of_counts - always 1
+# Court Designator - which court in a given county is handling case (C for County) or (R for Circuit). Also a J for juvenile may be in the data.  
+# County code - 1 to 67 - see table on page 7 
+# arrest_name - hash of name at time of arrest.  Can I decode this?  
+# final_name - hash of name at end of proceedings.  May be different than arrest name?
+# sex, race, birthdate
+# init_arrest_date - initial arrest date
+# clerk_dt - not sure what this is, not in data dictionary. 
+# offense_dt - date offense occured
+# rearrest_dt - rearrest date if it matters
+# in_charge_status - how person was charged S - sworn complaint; F - arrest; P - notice to appear; C - rearrest
+# charge_level - F - felony, M - misdemeanor, I-infractions, C-county, L-municipal (local), I - Infractions - A violation of a state statute for which the only sentence authorized is a fine and which violation is expressly designated as an infraction.
+# charge_degree - C (Capital), L (Life), P (First Degree punishable by life), F (First degree), S (Second Degree), T (Third Degree), N - N/A - When the level of the charge is reflected as an infraction, county or municipal. (See page 44).
+# in_flst_chap, in_flst_sect in_flst_subsect - three field breakdown of charge
+# drug_type - drug code. see page 51
+# bond_hearing_dt - bond hearing date
+# adv_prelim_hear_dt  - prelim hearing date
+# pr_charge_status - prosocuter phase - see page 61 for breakdown
+# pr_charge_level - see charge level above - prosocuter phase
+# pr_charge_degree - see charge degree above - prosocuter phase
+# pr_gen_off_char - This field should be used to assist in describing the charge. See page 64 for breakdown
+# pr_filing_dt - date prosocutero filed charges
+# pr_final_decision-date - final action date by prosocutero
+# pr_final_action - see 79 and 80 - some common ones L - dropped; N-charge filed; O - nolle pros; R- transferred to another court
+# pr_counsel_type - 1 (self), 2(privae atty), 3 (pub defender), 4 (court private or assigned), 5-other. 6? unk.
+# ct_charge_status - any change in status after the prosocuter phase of charges (new charge, same charge, reduced, ammended, that sort of this) duing court phase
+# ct_charge_status - court phase -- se charge level above
+# ct_charge_degree - court phase -- see charge degree abvoe
+# ct_geh_off_char - court phsae -- see geon_off_char above
+# ct_flst_chap, sect, subsect -- florida statute during court phase
+# ct_drug type - court phase, see drug type above
+# ct_decision_date - court phase, date of decision
+# ct_action_taken - G (guilty), E(dismissed upon payment, court cost), W (Adjudication withheld), A(Acuitted), I(Acuitted by reason insanity), D(Dismissed no reason givem), E(Dismussed upon payment), T(Dismissed speedy trail statuate), (M - Mentally Physically unable to stand trial), G(Juv court adjudicated guilty), H(Pretrial diversion), V(venu change), Z(Extradition), K(adjudged delinquent), B(Bond something something), X(Stipulated Deportation), Q(Waived to adult court), Y (delcined to adjudicate)
+# ct_trial_type - 1 (no trial), 2 (jury), 3 (non jury) 8?
+# ct_final_plea - 
+```
+
+```{r cars}
+# https://github.com/ryanelittle/howard-homeless-courts laws
+st_john %>%
+  filter(in_flst_chap == "0316") %>%
+  filter(in_flst_sect == "2045") %>%
+  group_by(in_flst_subsect) %>%
+  tally() 
+
+roadside_panhandle_sj <- st_john %>%
+  filter(in_flst_chap == "0316") %>%
+  filter(in_flst_sect == "2045") %>%
+  group_by(arrest_name) %>%
+  summarise(count= n()) %>%
+  select(arrest_name)
+  
+homeless_sj_all_cases <- st_john %>%
+  inner_join(roadside_panhandle_sj)
+
+
+```
+```{r}
+x <- orange %>%
+  filter(court_designator == "C")
+
+```
+
+
+An export of calls for service from the CAD database into an 
+
+CAD database
+Location of vicitm of sex crime. 
+
+Mental, sex crimes, 1000 
+Date and Time
+Case Number
+Complaint Nature - Pre populated field, how we put call in - 911 hangup, reckless driver
+Reporting Units - what deputy responded
+Location - street address, City, 
+Internal - deputy assignments, districts, police beat
+Depending on how export, may have complaintant name...would have to get through. 
+Our disposition - location, restore piece

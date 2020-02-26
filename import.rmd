@@ -1,0 +1,319 @@
+---
+title: "court-import"
+author: "Sean Mussenden | Howard Center for Investigative Journalism"
+date: "2/26/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages
+
+```{r}
+library(tidyverse)
+library(data.table)
+# devtools::install_github("xiaodaigh/disk.frame")
+library(disk.frame)
+setup_disk.frame()
+
+# this will allow unlimited amount of data to be passed from worker to worker
+options(future.globals.maxSize = Inf)
+```
+
+# Prepare raw data for import (outside of R)
+
+Data for Florida court records from 2004 to 2020 comes to us as a ZIP file that, when uncompressed is, nearly 20gb. We need to process it first using terminal packages.   
+
+
+```{r}
+
+# Go to terminal. Make sure you have pip installed
+# pip install csvkit 
+
+# Go into folder with data 
+# cd Desktop/florida-court-records/data/raw
+
+# unzip the data 
+# unzip 20200129_Howard_Center_Mussenden.zip 
+# this creates a file called 20200129_Howard_Center_Mussenden.txt
+
+# Check the encoding 
+# file 20200129_Howard_Center_Mussenden.txt
+# 20200129_Howard_Center_Mussenden.txt: Little-endian UTF-16 Unicode text, with very long lines, with CRLF line terminators
+
+# Convert UTF-16 to UTF-8 by telling csvkit csvclean function that it's utf-16.  By default it converts it to UTF-8 and makes it a csv 
+# csvclean -e "UTF-16" florida.txt
+
+# It produces an output file called 20200129_Howard_Center_Mussenden_out.csv
+
+```
+
+# Read data in using disk.frame
+https://diskframe.com/articles/ingesting-data.html
+
+```{r}
+florida_court <- csv_to_disk.frame("data/raw/20200129_Howard_Center_Mussenden_out.csv", in_chunk_size = 1e6, colClasses = list(character=c(
+ "Message_Type",
+"Off_Tran_No",
+"Court_Docket_No",
+"Sequence_No",
+"No_of_Counts",
+"Court_Designator",
+"County",
+"Arrest_Name",
+"Final_name",
+"Sex",
+"Race",
+"birth_date",
+"Init_Arrest_Dt",
+"Clerk_Dt",
+"Offense_Dt",
+"Capias_Dt",
+"Rearrest_Dt",
+"In_Charge_Status",
+"Charge_Level",
+"Charge_Degree",
+"in_FLST_Chap",
+"in_FLST_Sect",
+"in_FLST_Subsect",
+"Drug_Type",
+"Bond_Hearing_Dt",
+"Adv_Prelim_Hear_Dt",
+"pr_Charge_Status",
+"pr_Charge_Level",
+"pr_Charge_Degree",
+"pr_Gen_Off_Char",
+"pr_FLST_Chap",
+"pr_FLST_Sect",
+"pr_FLST_Subsect",
+"pr_Filing_Dt",
+"pr_Final_Decision_Dt",
+"pr_Final_Action",
+"pr_Counsel_Type",
+"ct_Charge_Status",
+"ct_Charge_Level",
+"ct_Charge_Degree",
+"ct_Gen_Off_Char",
+"ct_FLST_Chap",
+"ct_FLST_Sect",
+"ct_FLST_Subsect",
+"ct_Drug_Type",
+"ct_Decision_Dt",
+"ct_Action_Taken",
+"ct_Trial_Type",
+"ct_Final_Plea",
+"st_Imposed_Dt",
+"st_Confine",
+"st_Confine_Type",
+"st_Confine_Len_Susp",
+"st_Credit_Time",
+"st_Prob_Len",
+"st_Comm_Len",
+"st_Fine",
+"st_Court_Cost",
+"st_Restitution",
+"st_Sent_Prov",
+"st_Sp_Sent_Prov",
+"pst_Ch_Reopen_Dt",
+"pst_Ch_Reopen_Reason",
+"pst_Ch_Reopen_Closed_Dt",
+"pst_Appeal_Notice_Dt" 
+)))
+```
+
+```{r}
+#Get colname 
+colnames(florida_court)
+```
+
+```{r}
+
+# Find brandi spiker
+# Okaloosa 46
+
+oka <- florida_court %>%
+  filter(County == "46") %>%
+  collect()
+
+head(oka)
+
+trespass <- florida_court %>%
+  filter(in_FLST_Chap == "0810") %>%
+  filter(in_FLST_Sect == "08") %>%
+  filter(in_FLST_Subsect == "2A") %>%
+  group_by(Arrest_Name) %>%
+  summarise(count=n()) %>%
+  collect() %>%
+  arrange(desc())
+
+  
+    group_by(Arrest_Name) %>%
+  summarise(count=n()) %>%
+  collect()
+
+spiker <- oka %>%
+  filter(Offense_Dt == "20150502") %>%
+  filter(birth_date == "198507")
+
+test <- florida_court %>%
+  filter(Court_Docket_No == toupper("462015mm002055xxxafx")) %>%
+  collect()
+
+test_x <- florida_court %>%
+  filter(Arrest_Name == "61598a17b100c795c3d0842eb19dc79d49785935") %>%
+  collect()
+
+```
+
+```{r}
+y <- florida_court %>%
+  group_by(in_FLST_Chap, in_FLST_Sect) %>%
+  summarise(count=n()) %>%
+  collect()
+
+
+z <- florida_court %>%
+  mutate(clerk_year = str_sub(Clerk_Dt, start=1, end=4)) %>%
+  select(clerk_year) %>%
+  group_by(clerk_year) %>%
+  summarise(count=n()) %>%
+  collect()
+
+
+```
+colClasses
+
+library(tidyverse)
+library(data.table)
+
+u<- read_csv("data/20200129_Howard_Center_Mussenden.csv", n_max = 2, skip = 20,
+             col_types = cols(
+               Message_Type = col_character(),
+               Off_Tran_No = col_character(),
+               Court_Docket_No = col_character(),
+               Sequence_No = col_character(),
+               No_of_Counts = col_character(),
+               Court_Designator = col_character(),
+               County = col_character(),
+               Arrest_Name = col_character(),
+               Final_name = col_character(),
+               Sex = col_character(),
+               Race = col_character(),
+               birth_date = col_character(),
+               Init_Arrest_Dt = col_character(),
+               Clerk_Dt = col_character(),
+               Offense_Dt = col_character(),
+               Capias_Dt = col_character(),
+               Rearrest_Dt = col_character(),
+               In_Charge_Status = col_character(),
+               Charge_Level = col_character(),
+               Charge_Degree = col_character(),
+               in_FLST_Chap = col_character(),
+               in_FLST_Sect = col_character(),
+               in_FLST_Subsect = col_character(),
+               Drug_Type = col_character(),
+               Bond_Hearing_Dt = col_character(),
+               Adv_Prelim_Hear_Dt = col_character(),
+               pr_Charge_Status = col_character(),
+               pr_Charge_Level = col_character(),
+               pr_Charge_Degree = col_character(),
+               pr_Gen_Off_Char = col_character(),
+               pr_FLST_Chap = col_character(),
+               pr_FLST_Sect = col_character(),
+               pr_FLST_Subsect = col_character(),
+               pr_Filing_Dt = col_character(),
+               pr_Final_Decision_Dt = col_character(),
+               pr_Final_Action = col_character(),
+               pr_Counsel_Type = col_character(),
+               ct_Charge_Status = col_character(),
+               ct_Charge_Level = col_character(),
+               ct_Charge_Degree = col_character(),
+               ct_Gen_Off_Char = col_character(),
+               ct_FLST_Chap = col_character(),
+               ct_FLST_Sect = col_character(),
+               ct_FLST_Subsect = col_character(),
+               ct_Drug_Type = col_character(),
+               ct_Decision_Dt = col_character(),
+               ct_Action_Taken = col_character(),
+               ct_Trial_Type = col_character(),
+               ct_Final_Plea = col_character(),
+               st_Imposed_Dt = col_character(),
+               st_Confine = col_character(),
+               st_Confine_Type = col_character(),
+               st_Confine_Len_Susp = col_character(),
+               st_Credit_Time = col_character(),
+               st_Prob_Len = col_character(),
+               st_Comm_Len = col_character(),
+               st_Fine = col_character(),
+               st_Court_Cost = col_character(),
+               st_Restitution = col_character(),
+               st_Sent_Prov = col_character(),
+               st_Sp_Sent_Prov = col_character(),
+               pst_Ch_Reopen_Dt = col_character(),
+               pst_Ch_Reopen_Reason = col_character(),
+               pst_Ch_Reopen_Closed_Dt = col_character(),
+               pst_Appeal_Notice_Dt = col_character()
+             ))
+
+u<- read_csv("data/florida_9_rows.csv")
+
+
+y <- fread("data/florida_out.csv", nrows=10)
+
+
+jourwk3100f-01m:data smussend$ csvcut -n florida.txt -e "UTF-16"
+
+
+opened up terminal, found out it:
+  Little-endian UTF-16 Unicode text, with very long lines, with CRLF line terminators
+  
+  
+```{r}
+# Need to make sure that when I read in data in import files that it accounted for 01 vs 1 for county codes. 
+# It looks like it's one record per case per count, but need to confirm. I think that means that for each case, can have multiple records.  If there's two counts of same charge, that's two separate records? If two counts of different charges, one each, that's two separate records?   
+# rec_num - my created unique identifier for entire data set
+# message_type - This field will identify the reason for supplemental action (changes) on disposed charges which have previously been supplied to the state level. N (Not applicable), E (Expunge), S (Seal), P (Appellate Action)
+# off_tran_no - This is in the data dictionary, but I have no idea what this means.  Page 2
+# court_docket_no - case number, essentially. Not unique, can have the same case number multiple times, in part because of next field, sequence no.
+# sequence_no - for each count, a unique identifier WITHIN a given case.  
+# no_of_counts - always 1
+# Court Designator - which court in a given county is handling case (C for County) or (R for Circuit). Also a J for juvenile may be in the data.  
+# County code - 1 to 67 - see table on page 7 
+# arrest_name - hash of name at time of arrest.  Can I decode this?  
+# final_name - hash of name at end of proceedings.  May be different than arrest name?
+# sex, race, birthdate
+# init_arrest_date - initial arrest date
+# clerk_dt - not sure what this is, not in data dictionary. 
+# offense_dt - date offense occured
+# rearrest_dt - rearrest date if it matters
+# in_charge_status - how person was charged S - sworn complaint; F - arrest; P - notice to appear; C - rearrest
+# charge_level - F - felony, M - misdemeanor, I-infractions, C-county, L-municipal (local), I - Infractions - A violation of a state statute for which the only sentence authorized is a fine and which violation is expressly designated as an infraction.
+# charge_degree - C (Capital), L (Life), P (First Degree punishable by life), F (First degree), S (Second Degree), T (Third Degree), N - N/A - When the level of the charge is reflected as an infraction, county or municipal. (See page 44).
+# in_flst_chap, in_flst_sect in_flst_subsect - three field breakdown of charge
+# drug_type - drug code. see page 51
+# bond_hearing_dt - bond hearing date
+# adv_prelim_hear_dt  - prelim hearing date
+# pr_charge_status - prosocuter phase - see page 61 for breakdown
+# pr_charge_level - see charge level above - prosocuter phase
+# pr_charge_degree - see charge degree above - prosocuter phase
+# pr_gen_off_char - This field should be used to assist in describing the charge. See page 64 for breakdown
+# pr_filing_dt - date prosocutero filed charges
+# pr_final_decision-date - final action date by prosocutero
+# pr_final_action - see 79 and 80 - some common ones L - dropped; N-charge filed; O - nolle pros; R- transferred to another court
+# pr_counsel_type - 1 (self), 2(privae atty), 3 (pub defender), 4 (court private or assigned), 5-other. 6? unk.
+# ct_charge_status - any change in status after the prosocuter phase of charges (new charge, same charge, reduced, ammended, that sort of this) duing court phase
+# ct_charge_status - court phase -- se charge level above
+# ct_charge_degree - court phase -- see charge degree abvoe
+# ct_geh_off_char - court phsae -- see geon_off_char above
+# ct_flst_chap, sect, subsect -- florida statute during court phase
+# ct_drug type - court phase, see drug type above
+# ct_decision_date - court phase, date of decision
+# ct_action_taken - G (guilty), E(dismissed upon payment, court cost), W (Adjudication withheld), A(Acuitted), I(Acuitted by reason insanity), D(Dismissed no reason givem), E(Dismussed upon payment), T(Dismissed speedy trail statuate), (M - Mentally Physically unable to stand trial), G(Juv court adjudicated guilty), H(Pretrial diversion), V(venu change), Z(Extradition), K(adjudged delinquent), B(Bond something something), X(Stipulated Deportation), Q(Waived to adult court), Y (delcined to adjudicate)
+# ct_trial_type - 1 (no trial), 2 (jury), 3 (non jury) 8?
+# ct_final_plea - 
+```
+
+```{r cars}
+# https://github.com/ryanelittle/howard-homeless-courts laws

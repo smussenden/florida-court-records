@@ -101,5 +101,4 @@ jourwk3100f-01m:data smussend$ csvcut -n florida.txt -e "UTF-16"
 
 
 opened up terminal, found out it:
-Little-endian UTF-16 Unicode text, with very long lines, with CRLF line terminators
-
+  Little-endian UTF-16 Unicode text, with very long lines, with CRLF line terminators
